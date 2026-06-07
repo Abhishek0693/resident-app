@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-niwas-bg text-niwas-text;
+    min-height: 100dvh;
+    overscroll-behavior: none;
+  }
+
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    box-sizing: border-box;
+  }
+
+  input, textarea, select {
+    @apply bg-niwas-elevated border border-niwas-border text-niwas-text rounded-xl px-4 py-3 w-full text-base;
+    outline: none;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    @apply border-niwas-primary/60 ring-1 ring-niwas-primary/20;
+  }
+
+  input::placeholder, textarea::placeholder {
+    @apply text-niwas-subtle;
+  }
+
+  select option {
+    @apply bg-niwas-card;
+  }
+}
+
+@layer components {
+  /* ── Buttons ─────────────────────────────────── */
+  .btn-primary {
+    @apply bg-niwas-primary text-niwas-inverse font-semibold px-5 py-3 rounded-xl
+           transition-all duration-200 active:scale-[0.97] hover:bg-white/90
+           focus:outline-none focus:ring-2 focus:ring-white/30
+           disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer;
+  }
+
+  .btn-secondary {
+    @apply bg-transparent text-niwas-text font-semibold px-5 py-3 rounded-xl
+           border border-niwas-border transition-all duration-200 active:scale-[0.97]
+           hover:bg-niwas-elevated hover:border-niwas-line focus:outline-none cursor-pointer;
+  }
+
+  .btn-danger {
+    @apply bg-transparent text-niwas-muted font-semibold px-5 py-3 rounded-xl
+           border border-niwas-border transition-all duration-200 active:scale-[0.97]
+           hover:border-white/20 hover:text-niwas-text focus:outline-none cursor-pointer;
+  }
+
+  /* ── Cards ───────────────────────────────────── */
+  .card {
+    @apply bg-niwas-card border border-niwas-border rounded-2xl p-4;
+  }
+
+  /* ── Screen layout ───────────────────────────── */
+  .screen {
+    @apply min-h-dvh pb-24;
+    padding-top: 56px; /* exact TopBar height */
+  }
+
+  /* ── Labels ──────────────────────────────────── */
+  .label {
+    @apply text-[11px] font-semibold text-niwas-muted uppercase tracking-widest mb-1.5 block;
+  }
+
+  .section-title {
+    @apply text-base font-bold text-niwas-text mb-3;
+  }
+
+  /* ── Status badges (monochrome) ───────────────── */
+  .badge-paid {
+    @apply bg-white text-niwas-inverse text-[11px] font-bold px-2.5 py-0.5 rounded-full;
+  }
+
+  .badge-due {
+    @apply bg-transparent border border-niwas-line text-niwas-muted text-[11px] font-semibold px-2.5 py-0.5 rounded-full;
+  }
+
+  .badge-partial {
+    @apply bg-niwas-elevated border border-niwas-line text-niwas-text text-[11px] font-semibold px-2.5 py-0.5 rounded-full;
+  }
+
+  .badge-info {
+    @apply bg-niwas-elevated text-niwas-muted text-[11px] font-semibold px-2.5 py-0.5 rounded-full border border-niwas-border;
+  }
+
+  /* ── Pill tab ────────────────────────────────── */
+  .tab-active {
+    @apply bg-niwas-primary text-niwas-inverse font-semibold;
+  }
+
+  .tab-inactive {
+    @apply bg-niwas-elevated text-niwas-muted hover:text-niwas-text;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+  .safe-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
+  }
+}
