@@ -8,6 +8,7 @@ import FinancialsScreen from './FinancialsScreen'
 import DocumentsScreen from './DocumentsScreen'
 import NoticesScreen from './NoticesScreen'
 import { useApp } from '../../context/AppContext'
+import AIChat from '../../components/common/AIChat'
 
 const TITLES = {
   dashboard: 'Buildings',
@@ -66,6 +67,7 @@ export default function AdminDashboard() {
       )}
 
       <BottomNav role="admin" active={tab} onNavigate={handleTabChange} />
+      <AIChat />
     </div>
   )
 }

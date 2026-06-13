@@ -4,6 +4,38 @@ import { formatINR, MONTHS, currentMonth } from '../../utils/helpers'
 import { CheckCircle2, Clock, AlertCircle, Plus } from 'lucide-react'
 import Modal from '../../components/common/Modal'
 
+const fmtShort = (dateStr) => {
+  if (!dateStr) return null
+  const d = new Date(dateStr)
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' })
+}
+
+const getRenewalInfo = (renewalDate) => {
+  if (!renewalDate) return null
+  const renewal = new Date(renewalDate)
+  const today = new Date()
+  const diff = Math.ceil((renewal - today) / (1000 * 60 * 60 * 24))
+  const isOverdue = diff < 0
+  const isSoon = diff >= 0 && diff <= 30
+  const totalMonths = (renewal.getFullYear() - today.getFullYear()) * 12 + (renewal.getMonth() - today.getMonth())
+  const months = Math.max(0, totalMonths)
+  const days = Math.max(0, diff - months * 30)
+  const timeLeft = months > 0
+    ? (days > 0 ? `${months}mo ${days}d` : `${months}mo`)
+    : diff > 0 ? `${diff}d` : 'Overdue'
+  return { date: fmtShort(renewal), daysLeft: diff, months, timeLeft, isOverdue, isSoon }
+}
+
+const effectiveRent = (baseRent, renewalDate, renewedRent) => {
+  if (!renewalDate || baseRent === 0) return baseRent
+  const isExpired = new Date(renewalDate) < new Date()
+  if (!isExpired) return baseRent
+  return renewedRent || Math.round(baseRent * 1.05)
+}
+
+const renewedAmount = (baseRent, renewedRent) =>
+  baseRent > 0 ? (renewedRent || Math.round(baseRent * 1.05)) : 0
+
 const STATUS_MAP = {
   paid:    { label: 'Paid',    badge: 'badge-paid',    icon: CheckCircle2 },
   due:     { label: 'Due',     badge: 'badge-due',     icon: AlertCircle },
@@ -67,7 +99,12 @@ export default function FinancialsScreen() {
   const [payModal, setPayModal] = useState(null)
 
   const building = buildings.find(b => b.id === selectedBuilding)
-  const occupiedUnits = building?.units.filter(u => u.status === 'occupied') || []
+  const occupiedUnits = (building?.units.filter(u => u.status === 'occupied') || [])
+    .sort((a, b) => {
+      const aLease = residents.find(r => r.id === a.residentId)?.propertyType === 'lease' ? 1 : 0
+      const bLease = residents.find(r => r.id === b.residentId)?.propertyType === 'lease' ? 1 : 0
+      return aLease - bLease
+    })
 
   const getPayment = (unitId) =>
     payments.find(p => p.unitId === unitId && p.month === month && p.year === year)
@@ -76,7 +113,12 @@ export default function FinancialsScreen() {
   const statPartial = occupiedUnits.filter(u => getPayment(u.id)?.status === 'partial').length
   const statDue     = occupiedUnits.filter(u => !getPayment(u.id) || getPayment(u.id)?.status === 'due').length
 
-  const totalExpected  = occupiedUnits.reduce((s, u) => s + u.rent + u.maintenanceFee, 0)
+  const totalRentExpected = occupiedUnits.reduce((s, u) => {
+    const res = residents.find(r => r.id === u.residentId)
+    return s + effectiveRent(u.rent, res?.renewalDate, res?.renewedRent)
+  }, 0)
+  const totalMaintExpected = occupiedUnits.reduce((s, u) => s + u.maintenanceFee, 0)
+  const totalExpected = totalRentExpected + totalMaintExpected
   const totalCollected = payments
     .filter(p => p.month === month && p.year === year && p.buildingId === selectedBuilding)
     .reduce((s, p) => s + (p.paidAmount || 0), 0)
@@ -140,44 +182,206 @@ export default function FinancialsScreen() {
             />
           </div>
           <p className="text-[11px] text-niwas-subtle mt-1.5 text-right">of {formatINR(totalExpected)} expected</p>
+          <div className="flex justify-between mt-3 pt-3 border-t border-niwas-border">
+            <div className="text-center">
+              <p className="text-[10px] text-niwas-subtle uppercase tracking-widest">Rent</p>
+              <p className="text-xs font-bold text-niwas-text mt-0.5">{formatINR(totalRentExpected)}</p>
+            </div>
+            <div className="w-px bg-niwas-border" />
+            <div className="text-center">
+              <p className="text-[10px] text-niwas-subtle uppercase tracking-widest">Maintenance</p>
+              <p className="text-xs font-bold text-niwas-text mt-0.5">{formatINR(totalMaintExpected)}</p>
+            </div>
+            <div className="w-px bg-niwas-border" />
+            <div className="text-center">
+              <p className="text-[10px] text-niwas-subtle uppercase tracking-widest">Total</p>
+              <p className="text-xs font-bold text-niwas-text mt-0.5">{formatINR(totalExpected)}</p>
+            </div>
+          </div>
         </div>
 
-        {/* Unit list */}
-        <div className="space-y-2">
+        {/* Unit table */}
+        {/* cols: # | Tenant | Advance | Rent | Maint | Total | Renews | Status | + */}
+        <div className="card p-0 overflow-x-auto">
+          <div style={{ minWidth: '844px' }}>
+          {/* Header */}
+          <div className="grid text-[10px] font-semibold uppercase tracking-widest text-niwas-subtle border-b-2 border-niwas-line"
+               style={{ gridTemplateColumns: '20px 88px 64px 64px 56px 64px 76px 64px 64px 48px 28px' }}>
+            {[
+              { label: '#',        cls: '' },
+              { label: 'Tenant',   cls: '' },
+              { label: 'Advance',  cls: 'text-right' },
+              { label: 'Rent',     cls: 'text-right' },
+              { label: 'Maint',    cls: 'text-right' },
+              { label: 'Total',    cls: 'text-right' },
+              { label: 'Renews',   cls: 'text-center' },
+              { label: 'Renewed',   cls: 'text-right' },
+              { label: 'New Total', cls: 'text-right' },
+              { label: 'Status',    cls: 'text-center' },
+              { label: '',         cls: '', last: true },
+            ].map(({ label, cls, last }, i) => (
+              <span key={i} className={`${cls} px-2 py-2.5 ${!last ? 'border-r border-niwas-border' : ''}`}>{label}</span>
+            ))}
+          </div>
+
           {occupiedUnits.length === 0 ? (
-            <div className="card text-center py-8">
-              <p className="text-sm text-niwas-muted">No occupied units</p>
-            </div>
+            <p className="text-sm text-niwas-muted text-center py-8">No occupied units</p>
           ) : (
-            occupiedUnits.map(unit => {
+            occupiedUnits.map((unit, idx) => {
               const payment = getPayment(unit.id)
               const status  = payment?.status || 'due'
               const resident = residents.find(r => r.id === unit.residentId)
               const S = STATUS_MAP[status]
+              const isLast = idx === occupiedUnits.length - 1
 
+              const renewInfo = getRenewalInfo(resident?.renewalDate)
+              const rent = effectiveRent(unit.rent, resident?.renewalDate, resident?.renewedRent)
+              const isRevised = rent !== unit.rent
+
+              const cell = 'border-r border-niwas-border flex items-center'
+              const cellLast = 'flex items-center'
               return (
-                <div key={unit.id} className="card flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-niwas-text truncate">{resident?.name || `Unit ${unit.unitNumber}`}</p>
-                    <p className="text-xs text-niwas-muted">Unit {unit.unitNumber} · {formatINR(unit.rent + unit.maintenanceFee)}</p>
-                    {payment?.paidAmount > 0 && status === 'partial' && (
-                      <p className="text-[11px] text-niwas-muted">Paid: {formatINR(payment.paidAmount)}</p>
-                    )}
+                <div
+                  key={unit.id}
+                  className="grid items-stretch border-b border-niwas-border"
+                  style={{ gridTemplateColumns: '20px 88px 64px 64px 56px 64px 76px 64px 64px 48px 28px' }}
+                >
+                  {/* # */}
+                  <div className={`${cell} px-2 py-3`}>
+                    <span className="text-[11px] font-bold text-niwas-subtle">{idx + 1}</span>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+
+                  {/* Tenant */}
+                  <div className={`${cell} px-2 py-3 min-w-0`}>
+                    <div className="min-w-0 w-full">
+                      <p className="text-xs font-bold text-niwas-text truncate">
+                        {payment?.paidBy || resident?.name || `Unit ${unit.unitNumber}`}
+                      </p>
+                      {payment?.paidBy && payment.paidBy !== resident?.name ? (
+                        <p className="text-[10px] text-niwas-subtle truncate">prev · U{unit.unitNumber}</p>
+                      ) : (
+                        <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                          <span className="text-[10px] text-niwas-subtle">U{unit.unitNumber}</span>
+                          {resident?.propertyType === 'lease' && <span className="badge-partial">Lease</span>}
+                          <span className="badge-info">{resident?.paymentTiming === 'before' ? 'Pre' : 'Post'}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Advance */}
+                  <div className={`${cell} px-2 py-3 justify-end`}>
+                    <span className="text-[11px] text-niwas-muted">{unit.advance > 0 ? formatINR(unit.advance) : '—'}</span>
+                  </div>
+
+                  {/* Rent */}
+                  <div className={`${cell} px-2 py-3 justify-end`}>
+                    <div className="text-right">
+                      {isRevised && (
+                        <p className="text-[10px] text-niwas-subtle line-through leading-none">{formatINR(unit.rent)}</p>
+                      )}
+                      <span className={`text-[11px] font-medium ${isRevised ? 'text-white' : 'text-niwas-muted'}`}>
+                        {rent > 0 ? formatINR(rent) : '—'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Maint */}
+                  <div className={`${cell} px-2 py-3 justify-end`}>
+                    <span className="text-[11px] text-niwas-muted">{formatINR(unit.maintenanceFee)}</span>
+                  </div>
+
+                  {/* Total */}
+                  <div className={`${cell} px-2 py-3 justify-end`}>
+                    <span className="text-[11px] font-semibold text-niwas-text">{formatINR(rent + unit.maintenanceFee)}</span>
+                  </div>
+
+                  {/* Renews */}
+                  <div className={`${cell} px-2 py-3 justify-center`}>
+                    {renewInfo ? (
+                      <div className="text-center">
+                        <p className={`text-[11px] font-medium ${renewInfo.isOverdue ? 'text-white' : renewInfo.isSoon ? 'text-niwas-text' : 'text-niwas-muted'}`}>
+                          {renewInfo.date}
+                        </p>
+                        <p className={`text-[10px] ${renewInfo.isOverdue ? 'text-niwas-subtle' : renewInfo.isSoon ? 'text-niwas-muted' : 'text-niwas-subtle'}`}>
+                          {renewInfo.isOverdue ? '+5% applied' : renewInfo.timeLeft + ' left'}
+                        </p>
+                      </div>
+                    ) : <span className="text-[11px] text-niwas-subtle">—</span>}
+                  </div>
+
+                  {/* Renewed rent */}
+                  <div className={`${cell} px-2 py-3 justify-end`}>
+                    <span className="text-[11px] text-niwas-subtle">
+                      {unit.rent > 0 ? formatINR(renewedAmount(unit.rent, resident?.renewedRent)) : '—'}
+                    </span>
+                  </div>
+
+                  {/* New Total (renewed rent + maint) */}
+                  <div className={`${cell} px-2 py-3 justify-end`}>
+                    <span className="text-[11px] font-semibold text-niwas-muted">
+                      {unit.rent > 0 ? formatINR(renewedAmount(unit.rent, resident?.renewedRent) + unit.maintenanceFee) : formatINR(unit.maintenanceFee)}
+                    </span>
+                  </div>
+
+                  {/* Status */}
+                  <div className={`${cell} px-2 py-3 justify-center`}>
                     <span className={S.badge}>{S.label}</span>
+                  </div>
+
+                  {/* Action */}
+                  <div className={`${cellLast} px-1 py-3 justify-center`}>
                     <button
-                      onClick={() => setPayModal({ unit: { ...unit, buildingId: building?.id }, resident })}
-                      className="w-8 h-8 flex items-center justify-center rounded-xl bg-niwas-elevated hover:bg-niwas-line cursor-pointer transition-colors"
+                      onClick={() => setPayModal({ unit: { ...unit, rent, buildingId: building?.id }, resident })}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg bg-niwas-elevated hover:bg-niwas-line cursor-pointer transition-colors"
                       aria-label="Record payment"
                     >
-                      <Plus size={14} className="text-niwas-muted" />
+                      <Plus size={13} className="text-niwas-muted" />
                     </button>
                   </div>
                 </div>
               )
             })
           )}
+
+          {/* Totals footer */}
+          {occupiedUnits.length > 0 && (() => {
+            const totRent  = occupiedUnits.reduce((s, u) => {
+              const res = residents.find(r => r.id === u.residentId)
+              return s + effectiveRent(u.rent, res?.renewalDate, res?.renewedRent)
+            }, 0)
+            const totMaint = occupiedUnits.reduce((s, u) => s + u.maintenanceFee, 0)
+            const totRenewed = occupiedUnits.reduce((s, u) => {
+              const res = residents.find(r => r.id === u.residentId)
+              return s + (u.rent > 0 ? renewedAmount(u.rent, res?.renewedRent) : 0)
+            }, 0)
+            const totNewTotal = occupiedUnits.reduce((s, u) => {
+              const res = residents.find(r => r.id === u.residentId)
+              return s + (u.rent > 0 ? renewedAmount(u.rent, res?.renewedRent) : 0) + u.maintenanceFee
+            }, 0)
+            return (
+              <div className="grid items-stretch border-t-2 border-niwas-line bg-niwas-elevated rounded-b-2xl"
+                   style={{ gridTemplateColumns: '20px 88px 64px 64px 56px 64px 76px 64px 64px 48px 28px' }}>
+                {[
+                  <span />,
+                  <span className="text-[10px] font-bold text-niwas-muted uppercase tracking-widest">Total</span>,
+                  <span />,
+                  <span className="text-[11px] font-bold text-niwas-text text-right">{formatINR(totRent)}</span>,
+                  <span className="text-[11px] font-bold text-niwas-text text-right">{formatINR(totMaint)}</span>,
+                  <span className="text-[11px] font-extrabold text-niwas-text text-right">{formatINR(totRent + totMaint)}</span>,
+                  <span />,
+                  <span className="text-[11px] font-bold text-niwas-muted text-right">{formatINR(totRenewed)}</span>,
+                  <span className="text-[11px] font-extrabold text-niwas-text text-right">{formatINR(totNewTotal)}</span>,
+                  <span />, <span />,
+                ].map((child, i, arr) => (
+                  <div key={i} className={`flex items-center px-2 py-2.5 ${i < arr.length - 1 ? 'border-r border-niwas-border' : ''} ${[3,4,5,7,8].includes(i) ? 'justify-end' : ''}`}>
+                    {child}
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
+          </div>
         </div>
       </div>
 

@@ -22,43 +22,84 @@
   }
 
   input, textarea, select {
-    @apply bg-niwas-elevated border border-niwas-border text-niwas-text rounded-xl px-4 py-3 w-full text-base;
+    background-color: #222222;
+    border: 1px solid #2C2C2C;
+    color: #F0F0F0;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    width: 100%;
+    font-size: 1rem;
     outline: none;
+    font-family: inherit;
   }
 
   input:focus, textarea:focus, select:focus {
-    @apply border-niwas-primary/60 ring-1 ring-niwas-primary/20;
+    border-color: rgba(255,255,255,0.6);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.2);
   }
 
   input::placeholder, textarea::placeholder {
-    @apply text-niwas-subtle;
+    color: #444444;
   }
 
   select option {
-    @apply bg-niwas-card;
+    background-color: #181818;
   }
 }
 
 @layer components {
   /* ── Buttons ─────────────────────────────────── */
   .btn-primary {
-    @apply bg-niwas-primary text-niwas-inverse font-semibold px-5 py-3 rounded-xl
-           transition-all duration-200 active:scale-[0.97] hover:bg-white/90
-           focus:outline-none focus:ring-2 focus:ring-white/30
-           disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer;
+    background-color: #FFFFFF;
+    color: #080808;
+    font-weight: 600;
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.75rem;
+    transition: background-color 200ms, transform 200ms;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
   }
+  .btn-primary:hover { background-color: rgba(255,255,255,0.9); }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-primary:focus-visible { outline: 2px solid rgba(255,255,255,0.3); outline-offset: 2px; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .btn-secondary {
-    @apply bg-transparent text-niwas-text font-semibold px-5 py-3 rounded-xl
-           border border-niwas-border transition-all duration-200 active:scale-[0.97]
-           hover:bg-niwas-elevated hover:border-niwas-line focus:outline-none cursor-pointer;
+    background-color: transparent;
+    color: #F0F0F0;
+    font-weight: 600;
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.75rem;
+    border: 1px solid #2C2C2C;
+    transition: background-color 200ms, border-color 200ms, transform 200ms;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
+  .btn-secondary:hover { background-color: #222222; border-color: #383838; }
+  .btn-secondary:active { transform: scale(0.97); }
+  .btn-secondary:focus-visible { outline: none; }
 
   .btn-danger {
-    @apply bg-transparent text-niwas-muted font-semibold px-5 py-3 rounded-xl
-           border border-niwas-border transition-all duration-200 active:scale-[0.97]
-           hover:border-white/20 hover:text-niwas-text focus:outline-none cursor-pointer;
+    background-color: transparent;
+    color: #888888;
+    font-weight: 600;
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.75rem;
+    border: 1px solid #2C2C2C;
+    transition: border-color 200ms, color 200ms, transform 200ms;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
+  .btn-danger:hover { border-color: rgba(255,255,255,0.2); color: #F0F0F0; }
+  .btn-danger:active { transform: scale(0.97); }
+  .btn-danger:focus-visible { outline: none; }
 
   /* ── Cards ───────────────────────────────────── */
   .card {
@@ -68,7 +109,7 @@
   /* ── Screen layout ───────────────────────────── */
   .screen {
     @apply min-h-dvh pb-24;
-    padding-top: 56px; /* exact TopBar height */
+    padding-top: 56px;
   }
 
   /* ── Labels ──────────────────────────────────── */
@@ -82,29 +123,60 @@
 
   /* ── Status badges (monochrome) ───────────────── */
   .badge-paid {
-    @apply bg-white text-niwas-inverse text-[11px] font-bold px-2.5 py-0.5 rounded-full;
+    background-color: #FFFFFF;
+    color: #080808;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 0.125rem 0.625rem;
+    border-radius: 9999px;
+    display: inline-block;
   }
 
   .badge-due {
-    @apply bg-transparent border border-niwas-line text-niwas-muted text-[11px] font-semibold px-2.5 py-0.5 rounded-full;
+    background-color: transparent;
+    border: 1px solid #383838;
+    color: #888888;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 0.125rem 0.625rem;
+    border-radius: 9999px;
+    display: inline-block;
   }
 
   .badge-partial {
-    @apply bg-niwas-elevated border border-niwas-line text-niwas-text text-[11px] font-semibold px-2.5 py-0.5 rounded-full;
+    background-color: #222222;
+    border: 1px solid #383838;
+    color: #F0F0F0;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 0.125rem 0.625rem;
+    border-radius: 9999px;
+    display: inline-block;
   }
 
   .badge-info {
-    @apply bg-niwas-elevated text-niwas-muted text-[11px] font-semibold px-2.5 py-0.5 rounded-full border border-niwas-border;
+    background-color: #222222;
+    color: #888888;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 0.125rem 0.625rem;
+    border-radius: 9999px;
+    border: 1px solid #2C2C2C;
+    display: inline-block;
   }
 
   /* ── Pill tab ────────────────────────────────── */
   .tab-active {
-    @apply bg-niwas-primary text-niwas-inverse font-semibold;
+    background-color: #FFFFFF;
+    color: #080808;
+    font-weight: 600;
   }
 
   .tab-inactive {
-    @apply bg-niwas-elevated text-niwas-muted hover:text-niwas-text;
+    background-color: #222222;
+    color: #888888;
   }
+  .tab-inactive:hover { color: #F0F0F0; }
 }
 
 @layer utilities {

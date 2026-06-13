@@ -6,7 +6,7 @@ import { formatDate } from '../../utils/helpers'
 
 function ResidentForm({ buildings, editData, onSave, onClose }) {
   const [form, setForm] = useState(editData || {
-    name: '', phone: '', email: '', aadhaar: '', buildingId: '', unitId: '', moveInDate: '',
+    name: '', phone: '', email: '', aadhaar: '', buildingId: '', unitId: '', moveInDate: '', paymentTiming: 'after',
   })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -60,6 +60,13 @@ function ResidentForm({ buildings, editData, onSave, onClose }) {
         <label className="label">Move-in Date</label>
         <input type="date" value={form.moveInDate} onChange={e => set('moveInDate', e.target.value)} />
       </div>
+      <div>
+        <label className="label">Payment Timing</label>
+        <select value={form.paymentTiming || 'after'} onChange={e => set('paymentTiming', e.target.value)}>
+          <option value="after">Pays after month (post-paid)</option>
+          <option value="before">Pays before month (pre-paid)</option>
+        </select>
+      </div>
       <div className="flex gap-3 pt-1">
         <button type="button" onClick={onClose} className="btn-secondary flex-1">Cancel</button>
         <button type="submit" className="btn-primary flex-1">{editData ? 'Update' : 'Add Resident'}</button>
@@ -83,7 +90,11 @@ function ResidentCard({ resident, unit, building, onEdit, onDelete }) {
           <p className="text-xs text-niwas-subtle mt-0.5 flex items-center gap-1">
             <Building2 size={10} /> {building?.name} · Unit {unit?.unitNumber}
           </p>
-          <p className="text-[11px] text-niwas-subtle">Since {formatDate(resident.moveInDate)}</p>
+          <p className="text-[11px] text-niwas-subtle flex items-center gap-1.5 flex-wrap">
+            {resident.moveInDate ? `Since ${formatDate(resident.moveInDate)}` : 'Lease'}
+            {resident.propertyType === 'lease' && <span className="badge-partial">Lease</span>}
+            <span className="badge-info">{resident.paymentTiming === 'before' ? 'Pre-pay' : 'Post-pay'}</span>
+          </p>
         </div>
         <div className="flex gap-1">
           <button
